@@ -20,6 +20,10 @@ impl Game {
         }
     }
 
+    pub fn get_board_size(&self) -> usize {
+        return self.board.board_size;
+    }
+
     pub fn get_player_mark(&self) -> FieldValue {
         if self.first_player_turn {
             return FieldValue::Xmark
@@ -28,13 +32,18 @@ impl Game {
         return FieldValue::Circle
     }
 
-    pub fn conquer_field(&mut self, pos: &BoardPosition) -> bool {
+    pub fn conquer_field(&mut self, pos: &BoardPosition) -> Result<bool, ()> {
         let player_mark = self.get_player_mark();
         self.first_player_turn = !self.first_player_turn;
 
-        self.board.set_field(pos, player_mark);
+        match self.board.set_field(pos, player_mark) {
+            Err(()) => return Err(()),
+            Ok(()) => (),
+        }
 
-        return self.was_winning_move(pos, player_mark);
+        let game_won = self.was_winning_move(pos, player_mark);
+
+        return Ok(game_won)
     }
 
     // this algorithm is unnecessarily running in parallel - let's try Rust's threads
@@ -85,7 +94,9 @@ impl Game {
                 Ok(tmp_pos) => *Box::new(tmp_pos),
                 Err(_) => break,
             };
-            if self.board.get_field(&current_pos) != player_mark {
+
+            // unwrap cannot possibly throw here because current_pos is checked for errors already
+            if self.board.get_field(&current_pos).unwrap() != player_mark {
                 break;
             }
 
@@ -95,7 +106,7 @@ impl Game {
         return points;
     }
 
-    pub fn get_field(&self, pos: &BoardPosition) -> FieldValue {
+    pub fn get_field(&self, pos: &BoardPosition) -> Result<FieldValue, ()> {
         self.board.get_field(pos)
     }
 

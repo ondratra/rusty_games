@@ -27,7 +27,7 @@ pub struct BoardPosition {
 #[derive(Clone)]
 pub struct Board {
     fields: Vec<Vec<FieldValue>>,
-    board_size: usize,
+    pub board_size: usize,
 }
 
 impl Board {
@@ -38,12 +38,26 @@ impl Board {
         }
     }
 
-    pub fn set_field(&mut self, pos: &BoardPosition, value: FieldValue) -> () {
+    pub fn set_field(&mut self, pos: &BoardPosition, value: FieldValue) -> Result<(), ()> {
+        if self.is_out_of_board(pos) {
+            return Err(());
+        }
+
         self.fields[pos.y][pos.x] = value;
+
+        return Ok(());
     }
 
-    pub fn get_field(&self, pos: &BoardPosition) -> FieldValue {
-        self.fields[pos.y][pos.x]
+    pub fn get_field(&self, pos: &BoardPosition) -> Result<FieldValue, ()> {
+        if self.is_out_of_board(pos) {
+            return Err(());
+        }
+
+        return Ok(self.fields[pos.y][pos.x]);
+    }
+
+    fn is_out_of_board(&self, pos: &BoardPosition) -> bool {
+        return pos.x >= self.board_size || pos.y >= self.board_size;
     }
 
     pub fn get_neighbour_field(&self, pos: &BoardPosition, direction: &(i8, i8)) -> Result<BoardPosition, ()> {

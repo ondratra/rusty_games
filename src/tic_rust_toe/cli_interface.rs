@@ -15,9 +15,12 @@ enum GameErrors {
 }
 
 impl CliInterface {
+    const DEFAULT_BOARD_SIZE: usize = 5;
+    const DEFAULT_POINTS_TARGET: u32 = 3;
+
     pub fn new() -> CliInterface {
         CliInterface {
-            game: Game::new(5, 3)
+            game: Game::new(CliInterface::DEFAULT_BOARD_SIZE, CliInterface::DEFAULT_POINTS_TARGET) // some dummy game
         }
     }
 
@@ -25,6 +28,9 @@ impl CliInterface {
         println!("Welcome to TicRustToe");
         println!("starting the game");
         println!();
+
+        let (board_size, points_target) = self.read_game_settings(CliInterface::DEFAULT_BOARD_SIZE, CliInterface::DEFAULT_POINTS_TARGET);
+        self.game = Game::new(board_size, points_target);
 
         loop {
             self.print_state();
@@ -37,8 +43,10 @@ impl CliInterface {
             match input {
                 Err(_error) => continue,
                 Ok(pos) => {
-                    if self.game.conquer_field(&pos) {
-                        self.print_game_won();
+                    let player_mark = self.game.get_player_mark();
+                    if self.game.conquer_field(&pos).unwrap() {
+                        self.print_state();
+                        self.print_game_won(player_mark);
                         break;
                     }
                 },
@@ -48,6 +56,59 @@ impl CliInterface {
 
     fn print_state(&self) -> () {
         self.game.print();
+    }
+
+    fn read_game_settings(&self, default_board_size: usize, default_points_target: u32) -> (usize, u32) {
+        let mut board_size: usize = 0;
+        let mut points_target: u32 = 0;
+
+        while board_size == 0 {
+            println!("Enter board size (default: {})", default_board_size);
+            let mut input = String::new();
+            stdin().read_line(&mut input).unwrap();
+
+            let clean_input = input.trim();
+            if clean_input.trim() == "" {
+                board_size = default_board_size;
+                continue;
+            }
+
+            match clean_input.parse() {
+                Ok(item) => {
+                    if item > 0 {
+                        board_size = item;
+                    } else {
+                        self.print_invalid_settings_number();
+                    }
+                },
+                _ => self.print_invalid_settings_number(),
+            }
+        }
+
+        while points_target == 0 {
+            println!("Enter target winning point (default: {})", default_points_target);
+            let mut input = String::new();
+            stdin().read_line(&mut input).unwrap();
+
+            let clean_input = input.trim();
+            if clean_input.trim() == "" {
+                points_target = default_points_target;
+                continue;
+            }
+
+            match clean_input.parse() {
+                Ok(item) => {
+                    if item > 0 {
+                        points_target = item;
+                    } else {
+                        self.print_invalid_settings_number();
+                    }
+                }
+                _ => self.print_invalid_settings_number(),
+            }
+        }
+
+        return (board_size, points_target);
     }
 
     fn read_move_from_input(&self) -> Result<BoardPosition, GameErrors> {
@@ -61,21 +122,37 @@ impl CliInterface {
             return Err(GameErrors::InvalidInput);
         }
 
-        let x = parts[0].parse().unwrap();
-        let y = parts[1].parse().unwrap();
+        let board_size = self.game.get_board_size();
+        let x = match parts[0].parse() {
+            Ok(item) => item,
+            _ => {
+                self.print_invalid_input_message();
+                return Err(GameErrors::InvalidInput);
+            }
+        };
+        let y = match parts[1].parse() {
+            Ok(item) => item,
+            _ => {
+                self.print_invalid_input_message();
+                return Err(GameErrors::InvalidInput);
+            }
+        };
 
-        if x > 4 || y > 4 {
+        if x >= board_size || y >= board_size {
             self.print_input_out_of_gameboard_message();
             return Err(GameErrors::OutOfGameboard);
         }
 
-
         let pos = BoardPosition{x, y};
-        if self.game.get_field(&pos) != FieldValue::Nothing {
+        if self.game.get_field(&pos).unwrap() != FieldValue::Nothing {
             self.print_field_already_occupied_message();
             return Err(GameErrors::FieldArleadyOccupied);
         }
         return Ok(pos)
+    }
+
+    fn print_invalid_settings_number(&self) -> () {
+        println!("Invalid input. Please enter a number greater than zero.");
     }
 
     fn print_players_turn_message(&self) -> () {
@@ -97,7 +174,7 @@ impl CliInterface {
         println!("Field is already occupied.");
     }
 
-    fn print_game_won(&self) -> () {
-        println!("You have won the game!")
+    fn print_game_won(&self, player_mark: FieldValue) -> () {
+        println!("Player {} have won the game!", player_mark)
     }
 }

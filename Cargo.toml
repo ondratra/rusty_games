@@ -5,4 +5,5 @@ authors = ["ondratra <ondratra@gmail.com>"]
 edition = "2018"
 
 [dev-dependencies]
+assert_cmd = "1.0.1"
 speculate = "0.1.2"
