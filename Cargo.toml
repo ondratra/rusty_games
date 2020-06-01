@@ -1,0 +1,8 @@
+[package]
+name = "rusty_games"
+version = "0.1.0"
+authors = ["ondratra <ondratra@gmail.com>"]
+edition = "2018"
+
+[dev-dependencies]
+speculate = "0.1.2"
